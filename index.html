@@ -219,6 +219,140 @@
   .legend-dot.today{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
   .legend-dot.future{background:var(--future)}
 
+  /* ── Side Panel ── */
+  .side-toggle{
+    position:fixed;
+    left:0;top:50%;
+    transform:translateY(-50%);
+    z-index:50;
+    width:28px;height:64px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-left:none;
+    border-radius:0 8px 8px 0;
+    color:var(--text-dim);
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:.75rem;
+    transition:all .3s;
+    writing-mode:vertical-rl;
+    letter-spacing:2px;
+  }
+  .side-toggle:hover{
+    background:var(--border);
+    color:var(--cyan);
+    width:32px;
+  }
+  .side-toggle .arrow{
+    font-size:.6rem;
+    margin-bottom:4px;
+    display:inline-block;
+    transition:transform .3s;
+  }
+  .side-panel.open ~ .side-toggle .arrow{
+    transform:rotate(180deg);
+  }
+
+  .side-panel{
+    position:fixed;
+    left:0;top:0;bottom:0;
+    width:320px;
+    background:var(--card);
+    border-right:1px solid var(--border);
+    z-index:40;
+    transform:translateX(-100%);
+    transition:transform .3s ease;
+    display:flex;flex-direction:column;
+    overflow-y:auto;
+  }
+  .side-panel.open{
+    transform:translateX(0);
+    box-shadow:4px 0 30px rgba(0,0,0,.5);
+  }
+  .side-panel-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:20px 20px 12px;
+    border-bottom:1px solid var(--border);
+  }
+  .side-panel-header h3{
+    font-size:1rem;
+    color:var(--cyan);
+    display:flex;align-items:center;gap:8px;
+  }
+  .side-panel-close{
+    background:none;border:none;
+    color:var(--text-dim);font-size:1.2rem;
+    cursor:pointer;padding:4px;
+    transition:color .2s;
+  }
+  .side-panel-close:hover{color:var(--danger)}
+  .side-panel-body{
+    padding:20px;
+    flex:1;
+  }
+  .side-panel-body .form-group{margin-bottom:14px}
+  .side-panel-body .form-group label{
+    display:block;font-size:.8rem;
+    color:var(--text-dim);margin-bottom:5px;
+  }
+  .side-panel-body .form-group input{
+    width:100%;padding:9px 12px;
+    background:var(--bg);border:1px solid var(--border);
+    border-radius:8px;color:var(--text);font-size:.95rem;
+    outline:none;transition:border-color .2s;
+  }
+  .side-panel-body .form-group input:focus{
+    border-color:var(--cyan);
+    box-shadow:0 0 10px rgba(0,255,204,.12);
+  }
+  .cost-result{
+    margin-top:20px;
+    padding:16px;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:10px;
+    text-align:center;
+    min-height:80px;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    gap:8px;
+  }
+  .cost-result.hidden-result{
+    color:var(--text-dim);
+    font-size:.85rem;
+    font-style:italic;
+  }
+  .cost-result .cost-value{
+    font-size:1.6rem;
+    font-weight:700;
+    color:var(--cyan);
+    text-shadow:0 0 16px rgba(0,255,204,.4);
+  }
+  .cost-result .cost-label{
+    font-size:.8rem;
+    color:var(--text-dim);
+  }
+  .cost-result .cost-breakdown{
+    font-size:.85rem;
+    color:var(--text-dim);
+    margin-top:4px;
+    line-height:1.6;
+  }
+  .cost-result .cost-breakdown span{
+    color:var(--green);
+    font-weight:600;
+  }
+  .cost-hint{
+    margin-top:16px;
+    padding:12px;
+    background:rgba(0,255,204,.04);
+    border:1px dashed var(--border);
+    border-radius:8px;
+    font-size:.75rem;
+    color:var(--text-dim);
+    line-height:1.5;
+  }
+
   /* ── Footer ── */
   .footer{
     margin-top:auto;
@@ -236,10 +370,38 @@
     .header h1{font-size:1.3rem}
     .stat-big{font-size:1.5rem}
     .setup-card{padding:24px 20px}
+    .side-panel{width:85vw}
   }
 </style>
 </head>
 <body>
+
+<!-- Side Panel: Cost of Life -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h3>💰 <span id="panelTitle">寿命计算器</span></h3>
+    <button class="side-panel-close" id="btnPanelClose">✕</button>
+  </div>
+  <div class="side-panel-body">
+    <div class="form-group">
+      <label id="labelSalary">月薪（元）</label>
+      <input type="number" id="inputSalary" min="1" placeholder="10000">
+    </div>
+    <div class="form-group">
+      <label id="labelItemPrice">物品价格（元）</label>
+      <input type="number" id="inputItemPrice" min="0" placeholder="9999">
+    </div>
+    <div class="cost-result hidden-result" id="costResult">
+      <span id="costPlaceholder">输入月薪和物品价格后自动计算</span>
+    </div>
+    <div class="cost-hint" id="costHint">
+      💡 <span id="costHintText">这个计算器将物品价格换算为你需要工作多少时间才能购买——用生命衡量消费的真实成本。</span>
+    </div>
+  </div>
+</div>
+<button class="side-toggle" id="btnSideToggle">
+  <span class="arrow">▶</span><span id="toggleLabel">寿命</span>
+</button>
 
 <!-- Setup Overlay -->
 <div class="setup-overlay hidden" id="setupOverlay">
@@ -334,6 +496,20 @@
       errorLifespan: '寿命需在 1-150 之间',
       btnLang: 'EN',
       btnReset: '⚙',
+      panelTitle: '寿命计算器',
+      labelSalary: '月薪（元）',
+      labelItemPrice: '物品价格（元）',
+      costPlaceholder: '输入月薪和物品价格后自动计算',
+      costHintText: '这个计算器将物品价格换算为你需要工作多少时间才能购买——用生命衡量消费的真实成本。',
+      toggleLabel: '寿命',
+      costYears: '年',
+      costMonths: '个月',
+      costDays: '天',
+      costHours: '小时',
+      costOfLife: '你需要用生命中的',
+      costToBuy: '来交换',
+      costDailyWage: '日薪',
+      costHourlyWage: '时薪',
     },
     en: {
       setupTitle: 'Setup',
@@ -356,6 +532,20 @@
       errorLifespan: 'Lifespan must be between 1 and 150',
       btnLang: '中文',
       btnReset: '⚙',
+      panelTitle: 'Life Cost Calculator',
+      labelSalary: 'Monthly Salary',
+      labelItemPrice: 'Item Price',
+      costPlaceholder: 'Enter salary and price to calculate',
+      costHintText: 'This calculator converts item prices into the working time needed to afford them — measuring the true cost of spending in life.',
+      toggleLabel: 'Cost',
+      costYears: 'yrs',
+      costMonths: 'months',
+      costDays: 'days',
+      costHours: 'hrs',
+      costOfLife: 'It costs',
+      costToBuy: 'of your life',
+      costDailyWage: 'Daily wage',
+      costHourlyWage: 'Hourly wage',
     },
   };
 
@@ -383,6 +573,8 @@
       'mainTitle','mainSubtitle','statPercentLabel','statDaysLabel',
       'statRemDaysLabel','labelRemaining','labelAge',
       'legendLived','legendToday','legendFuture','footerText','btnLang',
+      'panelTitle','labelSalary','labelItemPrice','costPlaceholder',
+      'costHintText','toggleLabel',
     ];
     textEls.forEach((id) => {
       const el = $(id);
@@ -574,6 +766,77 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => { if (config) render(); }, 200);
   });
+
+  // ── Side Panel: Cost of Life ──
+  const SALARY_KEY = 'life-in-days-salary';
+  const sidePanel = $('sidePanel');
+  const inputSalary = $('inputSalary');
+  const inputItemPrice = $('inputItemPrice');
+  const costResult = $('costResult');
+
+  // Load saved salary
+  try {
+    const savedSalary = localStorage.getItem(SALARY_KEY);
+    if (savedSalary) inputSalary.value = savedSalary;
+  } catch (e) {}
+
+  $('btnSideToggle').addEventListener('click', () => {
+    sidePanel.classList.toggle('open');
+  });
+  $('btnPanelClose').addEventListener('click', () => {
+    sidePanel.classList.remove('open');
+  });
+
+  function calcCost() {
+    const salary = parseFloat(inputSalary.value);
+    const price = parseFloat(inputItemPrice.value);
+    const t = I18N[currentLang];
+
+    if (!salary || salary <= 0 || !price || price < 0) {
+      costResult.className = 'cost-result hidden-result';
+      costResult.innerHTML = '<span id="costPlaceholder">' + t.costPlaceholder + '</span>';
+      return;
+    }
+
+    // Save salary
+    localStorage.setItem(SALARY_KEY, inputSalary.value);
+
+    // 22 working days/month, 8 hours/day
+    const dailyWage = salary / 22;
+    const hourlyWage = dailyWage / 8;
+    const totalHours = price / hourlyWage;
+    const totalDays = price / dailyWage;
+    const totalMonths = price / salary;
+
+    // Build human-readable duration
+    let durationText = '';
+    if (totalMonths >= 12) {
+      const years = Math.floor(totalMonths / 12);
+      const months = Math.round(totalMonths % 12);
+      durationText = years + ' ' + t.costYears;
+      if (months > 0) durationText += ' ' + months + ' ' + t.costMonths;
+    } else if (totalDays >= 1) {
+      const days = Math.floor(totalDays);
+      const hours = Math.round((totalDays - days) * 8);
+      durationText = days + ' ' + t.costDays;
+      if (hours > 0) durationText += ' ' + hours + ' ' + t.costHours;
+    } else {
+      durationText = totalHours.toFixed(1) + ' ' + t.costHours;
+    }
+
+    costResult.className = 'cost-result';
+    costResult.innerHTML =
+      '<div class="cost-label">' + t.costOfLife + '</div>' +
+      '<div class="cost-value">' + durationText + '</div>' +
+      '<div class="cost-label">' + t.costToBuy + '</div>' +
+      '<div class="cost-breakdown">' +
+        t.costDailyWage + ': <span>¥' + dailyWage.toFixed(0) + '</span> · ' +
+        t.costHourlyWage + ': <span>¥' + hourlyWage.toFixed(1) + '</span>' +
+      '</div>';
+  }
+
+  inputSalary.addEventListener('input', calcCost);
+  inputItemPrice.addEventListener('input', calcCost);
 
   // ── Init ──
   function init() {
