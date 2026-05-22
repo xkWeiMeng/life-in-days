@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Living Days — 人生可视化进度</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0a0f;
+    --card:#12121a;
+    --border:#1e1e2e;
+    --text:#e0e0e0;
+    --text-dim:#6a6a7a;
+    --green:#00ff88;
+    --cyan:#00ffcc;
+    --future:#1a1a2e;
+    --danger:#ff4466;
+  }
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans SC',sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:24px 16px;
+  }
+
+  /* ── Header ── */
+  .header{
+    text-align:center;
+    margin-bottom:32px;
+    position:relative;
+    width:100%;
+    max-width:960px;
+  }
+  .header h1{
+    font-size:1.8rem;
+    font-weight:700;
+    background:linear-gradient(135deg,var(--green),var(--cyan));
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+    margin-bottom:4px;
+  }
+  .header .subtitle{
+    font-size:.9rem;
+    color:var(--text-dim);
+  }
+  .top-actions{
+    position:absolute;
+    top:0;right:0;
+    display:flex;gap:8px;
+  }
+  .top-actions button{
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    padding:4px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:.8rem;
+    transition:all .2s;
+  }
+  .top-actions button:hover{
+    border-color:var(--cyan);
+    color:var(--cyan);
+  }
+
+  /* ── Setup Panel ── */
+  .setup-overlay{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.7);
+    backdrop-filter:blur(8px);
+    display:flex;align-items:center;justify-content:center;
+    z-index:100;
+    animation:fadeIn .3s ease;
+  }
+  .setup-overlay.hidden{display:none}
+  .setup-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:32px;
+    width:90%;max-width:400px;
+    box-shadow:0 0 60px rgba(0,255,136,.08);
+  }
+  .setup-card h2{
+    font-size:1.3rem;
+    margin-bottom:20px;
+    color:var(--green);
+  }
+  .form-group{
+    margin-bottom:16px;
+  }
+  .form-group label{
+    display:block;
+    font-size:.85rem;
+    color:var(--text-dim);
+    margin-bottom:6px;
+  }
+  .form-group input{
+    width:100%;
+    padding:10px 14px;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:8px;
+    color:var(--text);
+    font-size:1rem;
+    outline:none;
+    transition:border-color .2s;
+  }
+  .form-group input:focus{
+    border-color:var(--green);
+    box-shadow:0 0 12px rgba(0,255,136,.15);
+  }
+  .form-error{
+    font-size:.8rem;
+    color:var(--danger);
+    margin-top:4px;
+    min-height:1.2em;
+  }
+  .btn-primary{
+    width:100%;
+    padding:12px;
+    background:linear-gradient(135deg,var(--green),var(--cyan));
+    border:none;
+    border-radius:8px;
+    color:var(--bg);
+    font-size:1rem;
+    font-weight:600;
+    cursor:pointer;
+    transition:opacity .2s;
+    margin-top:8px;
+  }
+  .btn-primary:hover{opacity:.85}
+
+  /* ── Stats ── */
+  .stats{
+    width:100%;max-width:960px;
+    margin-bottom:24px;
+  }
+  .stats-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:12px;
+  }
+  .stat-big{
+    font-size:2rem;
+    font-weight:700;
+    color:var(--green);
+    text-shadow:0 0 20px rgba(0,255,136,.4);
+  }
+  .stat-label{
+    font-size:.85rem;
+    color:var(--text-dim);
+  }
+  .stat-detail{
+    font-size:.95rem;
+    color:var(--text-dim);
+  }
+  .stat-detail span{
+    color:var(--green);
+    font-weight:600;
+  }
+  .progress-bar-track{
+    width:100%;
+    height:6px;
+    background:var(--future);
+    border-radius:3px;
+    overflow:hidden;
+    margin-top:8px;
+  }
+  .progress-bar-fill{
+    height:100%;
+    background:linear-gradient(90deg,var(--green),var(--cyan));
+    border-radius:3px;
+    box-shadow:0 0 12px rgba(0,255,136,.5);
+    transition:width .6s ease;
+  }
+
+  /* ── Canvas ── */
+  .canvas-wrap{
+    width:100%;max-width:960px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:24px;
+  }
+  .canvas-wrap canvas{
+    display:block;
+    width:100%;
+    border-radius:8px;
+  }
+
+  /* ── Legend ── */
+  .legend{
+    display:flex;gap:20px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-bottom:16px;
+    font-size:.8rem;
+    color:var(--text-dim);
+  }
+  .legend-item{
+    display:flex;align-items:center;gap:6px;
+  }
+  .legend-dot{
+    width:10px;height:10px;border-radius:2px;
+  }
+  .legend-dot.lived{background:var(--green);box-shadow:0 0 6px var(--green)}
+  .legend-dot.today{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+  .legend-dot.future{background:var(--future)}
+
+  /* ── Footer ── */
+  .footer{
+    margin-top:auto;
+    padding-top:24px;
+    text-align:center;
+    font-size:.75rem;
+    color:var(--text-dim);
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  /* ── Responsive ── */
+  @media(max-width:480px){
+    .header h1{font-size:1.3rem}
+    .stat-big{font-size:1.5rem}
+    .setup-card{padding:24px 20px}
+  }
+</style>
+</head>
+<body>
+
+<!-- Setup Overlay -->
+<div class="setup-overlay hidden" id="setupOverlay">
+  <div class="setup-card">
+    <h2 id="setupTitle">设置</h2>
+    <div class="form-group">
+      <label id="labelBirth">出生日期</label>
+      <input type="date" id="inputBirth">
+      <div class="form-error" id="errorBirth"></div>
+    </div>
+    <div class="form-group">
+      <label id="labelLifespan">预期寿命（年）</label>
+      <input type="number" id="inputLifespan" min="1" max="150" value="82">
+      <div class="form-error" id="errorLifespan"></div>
+    </div>
+    <button class="btn-primary" id="btnSave">开始</button>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="top-actions">
+    <button id="btnLang">EN</button>
+    <button id="btnReset">⚙</button>
+  </div>
+  <h1 id="mainTitle">人生可视化进度</h1>
+  <p class="subtitle" id="mainSubtitle">每一天，都值得被看见</p>
+</div>
+
+<!-- Stats -->
+<div class="stats" id="statsSection" style="display:none">
+  <div class="stats-row">
+    <div>
+      <span class="stat-big" id="statPercent">0%</span>
+      <span class="stat-label" id="statPercentLabel"> 已走过</span>
+    </div>
+    <div class="stat-detail">
+      <span id="statLived">0</span> / <span id="statTotal">0</span> <span id="statDaysLabel">天</span>
+    </div>
+  </div>
+  <div class="progress-bar-track">
+    <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+  </div>
+  <div class="stats-row" style="margin-top:12px">
+    <div class="stat-detail">
+      <span id="labelRemaining">剩余</span>: <span id="statRemaining">0</span> <span id="statRemDaysLabel">天</span>
+    </div>
+    <div class="stat-detail">
+      <span id="labelAge">年龄</span>: <span id="statAge">0</span>
+    </div>
+  </div>
+</div>
+
+<!-- Canvas -->
+<div class="canvas-wrap" id="canvasWrap" style="display:none">
+  <canvas id="gridCanvas"></canvas>
+</div>
+
+<!-- Legend -->
+<div class="legend" id="legendSection" style="display:none">
+  <div class="legend-item"><div class="legend-dot lived"></div><span id="legendLived">已度过</span></div>
+  <div class="legend-item"><div class="legend-dot today"></div><span id="legendToday">今天</span></div>
+  <div class="legend-item"><div class="legend-dot future"></div><span id="legendFuture">未来</span></div>
+</div>
+
+<div class="footer" id="footerText">用一个格子，记住每一天</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── i18n ──
+  const I18N = {
+    zh: {
+      setupTitle: '设置',
+      labelBirth: '出生日期',
+      labelLifespan: '预期寿命（年）',
+      btnSave: '开始',
+      mainTitle: '人生可视化进度',
+      mainSubtitle: '每一天，都值得被看见',
+      statPercentLabel: ' 已走过',
+      statDaysLabel: '天',
+      statRemDaysLabel: '天',
+      labelRemaining: '剩余',
+      labelAge: '年龄',
+      legendLived: '已度过',
+      legendToday: '今天',
+      legendFuture: '未来',
+      footerText: '用一个格子，记住每一天',
+      errorFuture: '出生日期不能是未来',
+      errorRequired: '请填写出生日期',
+      errorLifespan: '寿命需在 1-150 之间',
+      btnLang: 'EN',
+      btnReset: '⚙',
+    },
+    en: {
+      setupTitle: 'Setup',
+      labelBirth: 'Birth Date',
+      labelLifespan: 'Expected Lifespan (years)',
+      btnSave: 'Start',
+      mainTitle: 'Life Visualized',
+      mainSubtitle: 'Every single day counts',
+      statPercentLabel: ' lived',
+      statDaysLabel: 'days',
+      statRemDaysLabel: 'days',
+      labelRemaining: 'Remaining',
+      labelAge: 'Age',
+      legendLived: 'Lived',
+      legendToday: 'Today',
+      legendFuture: 'Future',
+      footerText: 'One cell for every day of your life',
+      errorFuture: 'Birth date cannot be in the future',
+      errorRequired: 'Please enter your birth date',
+      errorLifespan: 'Lifespan must be between 1 and 150',
+      btnLang: '中文',
+      btnReset: '⚙',
+    },
+  };
+
+  const STORAGE_KEY = 'life-in-days-config';
+  const LANG_KEY = 'life-in-days-lang';
+
+  let currentLang = 'zh';
+  let config = null; // { birthDate: 'YYYY-MM-DD', lifespan: 82 }
+
+  // ── DOM refs ──
+  const $ = (id) => document.getElementById(id);
+  const setupOverlay = $('setupOverlay');
+  const inputBirth = $('inputBirth');
+  const inputLifespan = $('inputLifespan');
+  const errorBirth = $('errorBirth');
+  const errorLifespan = $('errorLifespan');
+  const canvas = $('gridCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // ── i18n apply ──
+  function applyLang() {
+    const t = I18N[currentLang];
+    const textEls = [
+      'setupTitle','labelBirth','labelLifespan','btnSave',
+      'mainTitle','mainSubtitle','statPercentLabel','statDaysLabel',
+      'statRemDaysLabel','labelRemaining','labelAge',
+      'legendLived','legendToday','legendFuture','footerText','btnLang',
+    ];
+    textEls.forEach((id) => {
+      const el = $(id);
+      if (el) el.textContent = t[id];
+    });
+    document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+    document.title = currentLang === 'zh'
+      ? 'Living Days — 人生可视化进度'
+      : 'Living Days — Life Visualized';
+    localStorage.setItem(LANG_KEY, currentLang);
+  }
+
+  // ── Date math ──
+  function calcDays(birthStr, lifespan) {
+    const birth = new Date(birthStr + 'T00:00:00');
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const totalDays = Math.round(lifespan * 365.25);
+    const diffMs = now - birth;
+    const livedDays = Math.max(0, Math.floor(diffMs / 86400000));
+
+    const ageYears = now.getFullYear() - birth.getFullYear();
+    const ageMonths = now.getMonth() - birth.getMonth();
+    const ageDays = now.getDate() - birth.getDate();
+    let age = ageYears;
+    if (ageMonths < 0 || (ageMonths === 0 && ageDays < 0)) age--;
+
+    return { totalDays, livedDays, age };
+  }
+
+  // ── Render grid ──
+  function renderGrid(totalDays, livedDays) {
+    const wrap = $('canvasWrap');
+    const wrapWidth = wrap.clientWidth - 32; // padding
+
+    // Determine cell size
+    const isMobile = window.innerWidth < 768;
+    const cellSize = isMobile ? 2 : 3;
+    const gap = 1;
+    const step = cellSize + gap;
+
+    const cols = Math.floor(wrapWidth / step);
+    const rows = Math.ceil(totalDays / cols);
+    const canvasW = cols * step;
+    const canvasH = rows * step;
+
+    // Set actual pixel dimensions
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvasW * dpr;
+    canvas.height = canvasH * dpr;
+    canvas.style.width = canvasW + 'px';
+    canvas.style.height = canvasH + 'px';
+    ctx.scale(dpr, dpr);
+
+    // Clear
+    ctx.clearRect(0, 0, canvasW, canvasH);
+
+    // Draw future cells in batch
+    ctx.fillStyle = '#1a1a2e';
+    for (let i = 0; i < totalDays; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      ctx.fillRect(col * step, row * step, cellSize, cellSize);
+    }
+
+    // Draw lived cells in batch
+    ctx.fillStyle = '#00ff88';
+    const lived = Math.min(livedDays, totalDays);
+    for (let i = 0; i < lived; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      ctx.fillRect(col * step, row * step, cellSize, cellSize);
+    }
+
+    // Draw today marker
+    if (livedDays < totalDays && livedDays > 0) {
+      const todayIdx = livedDays;
+      const col = todayIdx % cols;
+      const row = Math.floor(todayIdx / cols);
+      ctx.fillStyle = '#00ffcc';
+      ctx.fillRect(col * step, row * step, cellSize, cellSize);
+      // Glow effect
+      ctx.shadowColor = '#00ffcc';
+      ctx.shadowBlur = 6;
+      ctx.fillRect(col * step, row * step, cellSize, cellSize);
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  // ── Update stats ──
+  function updateStats(totalDays, livedDays, age) {
+    const pct = totalDays > 0 ? (livedDays / totalDays) * 100 : 0;
+    const displayPct = Math.min(pct, 999.99);
+    const remaining = Math.max(0, totalDays - livedDays);
+
+    $('statPercent').textContent = displayPct.toFixed(2) + '%';
+    $('statLived').textContent = livedDays.toLocaleString();
+    $('statTotal').textContent = totalDays.toLocaleString();
+    $('statRemaining').textContent = remaining.toLocaleString();
+    $('statAge').textContent = age;
+
+    const fillPct = Math.min(pct, 100);
+    $('progressFill').style.width = fillPct + '%';
+
+    // Overshoot styling
+    if (pct > 100) {
+      $('statPercent').style.color = 'var(--cyan)';
+      $('statPercent').style.textShadow = '0 0 20px rgba(0,255,204,.5)';
+      $('progressFill').style.background = 'linear-gradient(90deg, var(--green), var(--cyan), var(--danger))';
+    } else {
+      $('statPercent').style.color = '';
+      $('statPercent').style.textShadow = '';
+      $('progressFill').style.background = '';
+    }
+  }
+
+  // ── Main render ──
+  function render() {
+    if (!config) return;
+    const { totalDays, livedDays, age } = calcDays(config.birthDate, config.lifespan);
+
+    $('statsSection').style.display = '';
+    $('canvasWrap').style.display = '';
+    $('legendSection').style.display = '';
+
+    updateStats(totalDays, livedDays, age);
+    renderGrid(totalDays, livedDays);
+  }
+
+  // ── Validation ──
+  function validate() {
+    const t = I18N[currentLang];
+    let valid = true;
+
+    const birthVal = inputBirth.value;
+    if (!birthVal) {
+      errorBirth.textContent = t.errorRequired;
+      valid = false;
+    } else if (new Date(birthVal + 'T00:00:00') > new Date()) {
+      errorBirth.textContent = t.errorFuture;
+      valid = false;
+    } else {
+      errorBirth.textContent = '';
+    }
+
+    const lifespanVal = parseInt(inputLifespan.value, 10);
+    if (isNaN(lifespanVal) || lifespanVal < 1 || lifespanVal > 150) {
+      errorLifespan.textContent = t.errorLifespan;
+      valid = false;
+    } else {
+      errorLifespan.textContent = '';
+    }
+
+    return valid;
+  }
+
+  // ── Event handlers ──
+  $('btnSave').addEventListener('click', () => {
+    if (!validate()) return;
+    config = {
+      birthDate: inputBirth.value,
+      lifespan: parseInt(inputLifespan.value, 10),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    setupOverlay.classList.add('hidden');
+    render();
+  });
+
+  $('btnReset').addEventListener('click', () => {
+    if (config) {
+      inputBirth.value = config.birthDate;
+      inputLifespan.value = config.lifespan;
+    }
+    errorBirth.textContent = '';
+    errorLifespan.textContent = '';
+    setupOverlay.classList.remove('hidden');
+  });
+
+  $('btnLang').addEventListener('click', () => {
+    currentLang = currentLang === 'zh' ? 'en' : 'zh';
+    applyLang();
+    if (config) render();
+  });
+
+  // Handle resize
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { if (config) render(); }, 200);
+  });
+
+  // ── Init ──
+  function init() {
+    // Detect language
+    const savedLang = localStorage.getItem(LANG_KEY);
+    if (savedLang && I18N[savedLang]) {
+      currentLang = savedLang;
+    } else {
+      const browserLang = (navigator.language || '').toLowerCase();
+      currentLang = browserLang.startsWith('zh') ? 'zh' : 'en';
+    }
+    applyLang();
+
+    // Load config
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) config = JSON.parse(raw);
+    } catch (e) {
+      config = null;
+    }
+
+    if (config && config.birthDate) {
+      setupOverlay.classList.add('hidden');
+      render();
+    } else {
+      setupOverlay.classList.remove('hidden');
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
