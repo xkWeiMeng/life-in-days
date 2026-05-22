@@ -403,6 +403,14 @@
     font-size:.75rem;
     color:var(--text-dim);
   }
+  .privacy{
+    margin-top:8px;
+    font-size:.7rem;
+    color:var(--text-dim);
+    opacity:.6;
+    display:flex;align-items:center;justify-content:center;gap:4px;
+  }
+  .privacy .lock{font-size:.75rem}
 
   /* ── Animations ── */
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -510,6 +518,7 @@
 </div>
 
 <div class="footer" id="footerText">用一个格子，记住每一天</div>
+<div class="privacy"><span class="lock">🔒</span><span id="privacyText">所有数据仅存储在您的浏览器本地，不会上传至任何服务器</span></div>
 
 <script>
 (function () {
@@ -536,6 +545,7 @@
       errorFuture: '出生日期不能是未来',
       errorRequired: '请填写出生日期',
       errorLifespan: '寿命需在 1-150 之间',
+      privacyText: '所有数据仅存储在您的浏览器本地，不会上传至任何服务器',
       btnLang: 'EN',
       btnReset: '⚙',
       panelTitle: '寿命计算器',
@@ -572,6 +582,7 @@
       errorFuture: 'Birth date cannot be in the future',
       errorRequired: 'Please enter your birth date',
       errorLifespan: 'Lifespan must be between 1 and 150',
+      privacyText: 'All data is stored locally in your browser and never uploaded to any server',
       btnLang: '中文',
       btnReset: '⚙',
       panelTitle: 'Life Cost Calculator',
@@ -616,7 +627,7 @@
       'statRemDaysLabel','labelRemaining','labelAge',
       'legendLived','legendToday','legendFuture','footerText','btnLang',
       'panelTitle','labelSalary','labelItemPrice','costPlaceholder',
-      'costHintText','toggleLabel',
+      'costHintText','toggleLabel','privacyText',
     ];
     textEls.forEach((id) => {
       const el = $(id);
